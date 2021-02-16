@@ -1,0 +1,53 @@
+RA for the SQL questions
+
+1.
+PI_{title,pid,year}SIGMA_{pid ~ 'Bigelow,.*' AND attr is NULL AND votes > 50000 AND gender = 'F'}directors NATURAL JOIN productions NATURAL JOIN ratings NATURAL JOIN persons
+
+2.
+temp = PI_{all}SIGMA_{pid = 'Radcliffe, Daniel'}roles
+temp2 = PI_{all}SIGMA{pid = 'Watson, Emma (II)'}roles
+temp3 = PI_{temp.id->danid,temp.billing-> danielbilling,temp.character-> danielchar,temp2.id->emmaid,temp2.billing->emmabilling,temp2.character->emmachar}temp join temp2 ON (temp.id = temp2.id)
+PI_{title,year,rank,emmachar,emmabilling,danielchar,danielbilling}SIGMA_{attr is NULL and emmachar != 'Herself' AND danielchar != 'Himself'}temp3 join productions on (danid = productions.id) join rating on (danid = ratings.id)
+
+3.
+temp = PI_{episodeof->id}SIGMA{id IN (PI_{id}SIGMA_{location = 'Victoria, British Columbia'}locations)}episodes
+PI_{id,year}SIGMA_{id IN (PI_{all}temp) AND year >= 2000}productions 
+
+4.
+temp = PI_{pid}SIGMA_{id IN (PI_{id}SIGMA_{episodeof = '"Hora Marcada" (1986)'}episodes)}directors
+temp2 = PI_{temp.id->pid,id->directid}temp join directors on temp.pid = directors.pid
+temp3 = PI_{pid,directid,}SIGMA_{attr is NULL AND languge = 'English'}temp2 join productions on (directid = productions.id) join languages on (directid = languages.id)
+PI_{pid,directid->id,rank}temp3 full left join ratings on (directid = ratings.id)
+
+5.
+temp = PI_{all}SIGMA_{pid = 'Lucas, George (I)'}directors
+temp2 = PI_{all}SIGMA{pid = 'Kurosawa, Akira'}directors
+PI_{links.id->lucas, links.idlinkedto->kurosawa, relationship}SIGMA_{id IN (PI_{id}temp) AND idlinkedto IN (PI_{id}temp2)}links
+
+6.
+temp = PI_{all}SIGMA_{votes >= 50000 AND attr is NULL}ratings NATURAL JOIN productions
+temp2 = GAMMA_{max(rank)->rank}temp
+PI_{id->title, year, rank, votes}SIGMA_{rank IN (PI_{rank}temp2)}temp
+
+7.
+PI_{season,numep,maxrank,minrank,avgrank,totalvotes}SIGMA_{episodeof = '"The Simpsons" (1989)'}GAMMA^season_{count(*)->numep,max(rank)->maxrank,min(rank)->minrank, avg(rank)->avgrank, sum(votes)->totalvote} episodes NATRUAL JOIN ratings
+
+8.
+temp = PI_{all}SIGMA_{rank >= 8 AND votes >= 50000 AND attr is NULL}ratings NATURAL JOIN productions
+temp2 = PI_{id,pid,rank}SIGMA_{pid = 'McGowan, Mickie' OR pid = 'Flowers, Bess' OR pid = 'Lynn, Sherry (I)'}temp
+PI_{pid,count(all),avg(rank)}GAMMA^pid_{count(*),avg(rank)}temp2ORDER BY avg(rank) asc
+
+9.
+temp = PI_{pid,total}SIGMA_{votes > 250000 AND attr is NULL}GAMMA^pid_{count(pid)->total}
+temp2 = GAMMA_{max(total)}temp
+temp3 = PI_{pid}temp JOIN temp2 on (temp.total = temp2.max)
+PI_{pid,id,billing,character}SIGMA_{pid in temp3 AND votes > 250000 AND attr is NULL}roles NATURAL JOIN productions NATRUAL JOIN ratings
+
+10.
+temp = PI_{all}SIGMA_{votes > 50000 AND rank >= 8.5}ratings
+temp2 = PI_{pid,count(*), avggoodones}GAMMA^pid_{count(*),avg(rank)->avggoodones}directors NATURAL JOIN temp
+temp3 = PI_{pid,total}SIGMA_{pid IN (PI_{pid}temp2) AND attr is NULL AND votes > 50000}GAMMA^pid_{pid,count(*)->total}HAVING_{count(*) >= 5}directors NATRUAL JOIN productions NATRUAL JOIN ratings
+temp4 = PI_{pid,total,count->goodones, avggoodones,(total-count)->rest}temp3 NATRUAL JOIN temp2
+temp5 = (PI_{pid,id,rank}SIGMA_{pid IN (PI_{pid}temp2) AND attr is NULL AND votes > 50000 AND total >= 5}directors NATRUAL JOIN productions NATRUAL JOIN ratings NATRUAL JOIN temp3) EXCEPT (PI_{pid,id,rank}directors NATRUAL JOIN temp)
+temp6 = GAMMA^pid_{avg(rank)->avgrest}temp5
+PI_{pid,int(goodones)/int(total)*100->prop,total, goodones, avggoodones, rest, avgrest,(avggoodones-avgrest)->diff}temp6 NATRUAL JOIN temp4

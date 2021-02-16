@@ -1,0 +1,243 @@
+SQL working with database
+
+1. 
+imdb=> select title,pid,year,rank from directors
+natural join productions
+natural join ratings natural join persons
+where pid ~ 'Bigelow,.*' and attr is null and votes > 50000 and gender = 'F';
+
+
+      title       |       pid        | year | rank
+------------------+------------------+------+------
+ Point Break      | Bigelow, Kathryn | 1991 |  7.2
+ Strange Days     | Bigelow, Kathryn | 1995 |  7.2
+ The Hurt Locker  | Bigelow, Kathryn | 2008 |  7.6
+ Zero Dark Thirty | Bigelow, Kathryn | 2012 |  7.4
+(4 rows)
+
+2. 
+imdb=> with temp as (select * from roles where pid = 'Radcliffe, Daniel'),
+temp2 as (select * from roles where pid = 'Watson, Emma (II)'),
+temp3 as (select temp.id danid,temp.billing danielbilling,temp.character danielchar,temp2.id emmaid,temp2.billing emmabilling,temp2.character emmachar from temp join temp2 on temp.id = temp2.id)
+select title, year, rank,emmachar, emmabilling, danielchar, danielbilling from temp3 join productions on (danid = productions.id) join ratings on (danid = ratings.id) w
+here attr is null and emmachar != 'Herself' and danielchar != 'Himself';
+
+ 
+                    title                     | year | rank |     emmachar     | emmabilling |  danielchar  | danielbilling
+----------------------------------------------+------+------+------------------+-------------+--------------+---------------
+ Harry Potter and the Chamber of Secrets      | 2002 |  7.4 | Hermione Granger |           3 | Harry Potter |             1
+ Harry Potter and the Deathly Hallows: Part 1 | 2010 |  7.7 | Hermione Granger |           2 | Harry Potter |             5
+ Harry Potter and the Deathly Hallows: Part 2 | 2011 |  8.1 | Hermione Granger |           6 | Harry Potter |             4
+ Harry Potter and the Escape from Gringotts   | 2014 |  8.9 | Hermione Granger |             | Harry Potter |
+ Harry Potter and the Forbidden Journey       | 2010 |    8 | Hermione Granger |             | Harry Potter |
+ Harry Potter and the Goblet of Fire          | 2005 |  7.7 | Hermione Granger |           5 | Harry Potter |             4
+ Harry Potter and the Half-Blood Prince       | 2009 |  7.5 | Hermione Granger |          10 | Harry Potter |             1
+ Harry Potter and the Order of the Phoenix    | 2007 |  7.5 | Hermione Granger |          25 | Harry Potter |             1
+ Harry Potter and the Prisoner of Azkaban     | 2004 |  7.8 | Hermione Granger |          16 | Harry Potter |             1
+ Harry Potter and the Sorcerer's Stone        | 2001 |  7.5 | Hermione Granger |          25 | Harry Potter |             5
+(10 rows)
+
+3. 
+imdb=> with temp as (select distinct episodeof as id from episodes where id in (select id from locations where location = 'Victoria, British Columbia'))
+select id,year from productions where id in (select * from temp) and year >= 2000;
+
+                 id                  | year
+-------------------------------------+------
+ "Spooksville" (2013)                | 2013
+ "World's Most Extreme Homes" (2006) | 2006
+ "The Dead Zone" (2002)              | 2002
+ "Improbabilia" (2013)               | 2013
+ "Creepy Canada" (2002)              | 2002
+ "Senior Living on Location" (2012)  | 2012
+ "Cedar Cove" (2013)                 | 2013
+ "Eaux troubles du crime" (2007)     | 2007
+ "Glutton for Punishment" (2007)     | 2007
+(9 rows)
+
+4.
+imdb=> with temp as (select pid from directors where id in (select id from episodes where episodeof = '"Hora Marcada" (1986)')),
+temp2 as (select temp.pid pid,id directid from temp join directors on temp.pid = directors.pid),
+temp3 as (select distinct pid,directid from temp2 join productions on (directid = productions.id) join languages on (directid = languages.id)  where attr is null and language = 'English')
+select pid,directid id, rank from temp3 left join ratings on (directid = ratings.id);
+
+           pid            |                       id                        | rank
+--------------------------+-------------------------------------------------+------
+ Cuarón, Alfonso          | A Little Princess (1995)                        |  7.7
+ Cuarón, Alfonso          | Children of Men (2006)                          |  7.9
+ Cuarón, Alfonso          | Gravity (2013)                                  |  7.8
+ Cuarón, Alfonso          | Great Expectations (1998)                       |  6.8
+ Cuarón, Alfonso          | Harry Potter and the Prisoner of Azkaban (2004) |  7.8
+ Cuarón, Alfonso          | Paris, je t'aime (2006)                         |  7.3
+ Cuarón, Alfonso          | Sólo con tu pareja (1991)                       |  7.1
+ Cuarón, Alfonso          | Vengeance Is Mine (1983)                        |  7.4
+ de la Riva, Juan Antonio | Aztech (2017)                                   |
+ del Toro, Guillermo      | At the Mountains of Madness (????)              |
+ del Toro, Guillermo      | Blade II (2002)                                 |  6.7
+ del Toro, Guillermo      | Crimson Peak (2015)                             |  6.6
+ del Toro, Guillermo      | Cronos (1993)                                   |  6.7
+ del Toro, Guillermo      | Hellboy (2004)                                  |  6.8
+ del Toro, Guillermo      | Hellboy 3 (????)                                |
+ del Toro, Guillermo      | Hellboy II: The Golden Army (2008)              |    7
+ del Toro, Guillermo      | Mimic (1997)                                    |  5.9
+ del Toro, Guillermo      | Pacific Rim (2013)                              |    7
+ del Toro, Guillermo      | Pinocchio (????/II)                             |
+ del Toro, Guillermo      | Saturn and the End of Days (????)               |
+ del Toro, Guillermo      | The Haunted Mansion (????)                      |
+ del Toro, Guillermo      | The Shape of Water (2017)                       |
+ del Toro, Guillermo      | The Witches (????)                              |
+ Gurrola, Alfredo (I)     | Cabalgando con la muerte (1989)                 |  6.2
+ Silva, Batan             | After Darkness (2016)                           |
+(25 rows)
+
+5.
+imdb=> with temp as (select * from directors where pid = 'Lucas, George (I)')
+, temp2 as (select * from directors where pid = 'Kurosawa, Akira')
+select links.id lucas, links.idlinkedto kurosawa, relationship from links where id in (select id from temp) and idlinked
+to in (select id from temp2);
+
+                        lucas                        |              kurosawa               | relationship
+-----------------------------------------------------+-------------------------------------+--------------
+ Star Wars: Episode I - The Phantom Menace (1999)    | Kagemusha (1980)                    | references
+ Star Wars: Episode I - The Phantom Menace (1999)    | Kakushi-toride no san-akunin (1958) | references
+ Star Wars: Episode I - The Phantom Menace (1999)    | Kumonosu-jô (1957)                  | references
+ Star Wars: Episode I - The Phantom Menace (1999)    | Shichinin no samurai (1954)         | references
+ Star Wars: Episode II - Attack of the Clones (2002) | Kagemusha (1980)                    | references
+ Star Wars: Episode II - Attack of the Clones (2002) | Shichinin no samurai (1954)         | references
+ Star Wars: Episode III - Revenge of the Sith (2005) | Shichinin no samurai (1954)         | references
+ Star Wars (1977)                                    | Dersu Uzala (1975)                  | references
+ Star Wars (1977)                                    | Kakushi-toride no san-akunin (1958) | references
+ Star Wars (1977)                                    | Shichinin no samurai (1954)         | references
+ Star Wars (1977)                                    | Yôjinbô (1961)                      | references
+(11 rows)
+
+6.
+imdb=> with temp as (select * from ratings natural join productions where votes >= 50000 and attr is null),
+temp2 as (select max(rank) rank from temp)
+
+select id title, year, rank, votes from temp where rank in (select * from temp2);
+
+
+              title              | year | rank |  votes
+---------------------------------+------+------+---------
+ The Shawshank Redemption (1994) | 1994 |  9.3 | 1698604
+(1 row)
+
+
+
+7. 
+imdb=> select season,count(*) numep,max(rank) maxrank,min(rank) minrank, avg(rank) avgrank, sum(votes) totalvote from episodes natural join ratings 
+where episodeof = '"The Simpsons" (1989)' group by season;
+
+ season | numep | maxrank | minrank |     avgrank      | totalvote
+--------+-------+---------+---------+------------------+-----------
+      1 |    13 |     8.3 |     7.4 | 7.80769230769231 |     23540
+      2 |    22 |     8.8 |     7.5 | 8.04090909090909 |     30915
+      3 |    24 |     8.8 |     7.7 | 8.15833333333333 |     31197
+      4 |    22 |       9 |     7.2 | 8.27272727272727 |     29357
+      5 |    22 |       9 |     7.5 | 8.34090909090909 |     27563
+      6 |    25 |     9.1 |       6 |             8.32 |     30536
+      7 |    25 |       9 |     7.5 |            8.332 |     29354
+      8 |    25 |     9.2 |     7.3 |             8.22 |     30564
+      9 |    25 |     9.1 |     5.1 |            7.844 |     25152
+     10 |    23 |     8.2 |     6.9 | 7.57391304347826 |     20102
+     11 |    22 |     7.9 |     6.6 |              7.3 |     17288
+     12 |    21 |     8.6 |     6.5 | 7.37142857142857 |     16015
+     13 |    22 |       8 |     5.6 | 7.13636363636363 |     14649
+     14 |    22 |     7.7 |     6.6 | 7.07272727272727 |     13669
+     15 |    22 |     7.4 |     6.2 | 7.03636363636364 |     13049
+     16 |    21 |     7.4 |     6.4 | 7.04285714285714 |     11966
+     17 |    22 |     7.4 |     6.3 | 6.86363636363636 |     13090
+     18 |    22 |     8.1 |     6.3 | 7.00454545454545 |     14249
+     19 |    20 |     8.2 |     6.1 |            6.925 |     13431
+     20 |    21 |     7.3 |     5.9 | 6.89523809523809 |     13202
+     21 |    23 |     7.3 |     5.7 | 6.82173913043478 |     12348
+     22 |    22 |     7.2 |     6.1 | 6.79545454545455 |     11106
+     23 |    22 |     8.2 |     4.5 | 6.80454545454546 |     12545
+     24 |    22 |     7.3 |     6.2 | 6.76818181818182 |      9505
+     25 |    22 |     7.7 |     5.8 | 6.82272727272727 |     10515
+     26 |    22 |     7.9 |     5.8 | 6.70454545454545 |      9783
+     27 |    22 |     8.4 |       6 |              6.8 |      6778
+(27 rows)
+
+8.
+imdb=> with temp as (select * from ratings natural join productions natural join roles where rank >= 8 and votes >= 50000 and attr is null)
+,temp2 as (select id,pid,rank from temp where pid = 'McGowan, Mickie' or pid = 'Flowers, Bess' or pid = 'Lynn, Sherry (I)')
+select pid,count(*),avg(rank) from temp2 group by pid order by avg(rank) asc;
+
+
+       pid        | count |       avg
+------------------+-------+------------------
+ McGowan, Mickie  |    10 |             8.23
+ Lynn, Sherry (I) |    12 | 8.25833333333333
+ Flowers, Bess    |    12 | 8.25833333333333
+(3 rows)
+
+9.
+imdb=> with temp as (select pid,count(pid) total from roles natural join ratings natural join productions where votes > 250000 and attr is null group by pid),
+temp2 as (select max(total) from temp),
+temp3 as (select pid from temp join temp2 on temp.total = temp2.max)
+select pid, id, billing, character from roles natural join productions natural join ratings where pid in (select * from temp3) and votes > 250000 and attr is null;
+
+      pid      |                     id                     | billing |             character
+---------------+--------------------------------------------+---------+------------------------------------
+ Lee, Stan (I) | Ant-Man (2015)                             |      62 | Bartender
+ Lee, Stan (I) | Avengers: Age of Ultron (2015)             |      22 | Stan Lee
+ Lee, Stan (I) | Big Hero 6 (2014)                          |      43 | Fred's Dad
+ Lee, Stan (I) | Captain America: Civil War (2016)          |      85 | FedEx Driver
+ Lee, Stan (I) | Captain America: The First Avenger (2011)  |         | General
+ Lee, Stan (I) | Captain America: The Winter Soldier (2014) |      13 | Smithsonian Guard
+ Lee, Stan (I) | Deadpool (2016)                            |      30 | Strip Club DJ
+ Lee, Stan (I) | Fantastic Four (2005/I)                    |      46 | Willie Lumpkin
+ Lee, Stan (I) | Guardians of the Galaxy (2014)             |      28 | Xandarian Ladies' Man
+ Lee, Stan (I) | Iron Man (2008)                            |      51 | Stan Lee
+ Lee, Stan (I) | Iron Man Three (2013)                      |      52 | Pageant Judge
+ Lee, Stan (I) | Iron Man 2 (2010)                          |      28 | Stan Lee
+ Lee, Stan (I) | Spider-Man (2002)                          |         | Man in Fair
+ Lee, Stan (I) | Spider-Man 2 (2004)                        |      24 | Man Dodging Debris
+ Lee, Stan (I) | Spider-Man 3 (2007)                        |      23 | Man in Times Square
+ Lee, Stan (I) | The Amazing Spider-Man (2012)              |      24 | School Librarian
+ Lee, Stan (I) | The Avengers (2012)                        |      51 | Stan Lee
+ Lee, Stan (I) | The Amazing Spider-Man 2 (2014)            |      58 | Graduation Guest
+ Lee, Stan (I) | The Incredible Hulk (2008)                 |         | Milwaukee Man Drinking From Bottle
+ Lee, Stan (I) | Thor (2011)                                |      35 | Stan the Man
+ Lee, Stan (I) | Thor: The Dark World (2013)                |      35 | Stan Lee
+ Lee, Stan (I) | X-Men (2000)                               |      36 | Hot Dog Vendor
+ Lee, Stan (I) | X-Men: The Last Stand (2006)               |      26 | Waterhose Man
+(23 rows)
+
+10.
+imdb=> with temp as (select * from ratings where votes > 50000 and rank >= 8.5),
+temp2 as (select pid, count(*), avg(rank) avggoodones from directors natural join temp group by pid),
+temp3 as (select pid, count(*) total from directors natural join productions natural join ratings where pid in (select pid from temp2) and attr is null and votes > 50000 group by pid having count(*) >= 5),
+temp4 as (select pid, total, count goodones, avggoodones, total-count rest from temp3 natural join temp2)
+, temp5 as ((select pid, id, rank from directors natural join productions natural join ratings natural join temp3 where pid in (select pid from temp2) and attr is null and votes > 50000 and total >= 5) except select pid, id, rank from directors natural join temp),
+temp6 as (select pid,avg(rank) avgrest from temp5 group by pid)
+select pid, goodones::numeric/total::numeric*100 prop, total, goodones, avggoodones, rest, avgrest,avggoodones-avgrest diff from temp6 natural join temp4;
+
+
+          pid           |          prop           | total | goodones |   avggoodones    | rest |     avgrest      |       diff
+------------------------+-------------------------+-------+----------+------------------+------+------------------+-------------------
+ Besson, Luc            | 16.66666666666666666700 |     6 |        1 |              8.6 |    5 |             6.84 |              1.76
+ Cameron, James (I)     | 14.28571428571428571400 |     7 |        1 |              8.5 |    6 | 7.81666666666667 | 0.683333333333333
+ Chaplin, Charles       | 60.00000000000000000000 |     5 |        3 | 8.56666666666667 |    2 |             8.25 | 0.316666666666666
+ Coppola, Francis Ford  | 42.85714285714285714300 |     7 |        3 |              8.9 |    4 |             7.55 |              1.35
+ Fincher, David         | 20.00000000000000000000 |    10 |        2 |              8.7 |    8 |           7.5125 |            1.1875
+ Hitchcock, Alfred (I)  | 20.00000000000000000000 |    10 |        2 |              8.5 |    8 |            8.125 |             0.375
+ Jackson, Peter (I)     | 27.27272727272727272700 |    11 |        3 |              8.8 |    8 |           7.4125 |            1.3875
+ Kubrick, Stanley       | 18.18181818181818181800 |    11 |        2 |              8.5 |    9 | 8.04444444444444 | 0.455555555555556
+ Leone, Sergio (I)      | 40.00000000000000000000 |     5 |        2 |             8.75 |    3 | 8.23333333333333 | 0.516666666666666
+ Lucas, George (I)      | 20.00000000000000000000 |     5 |        1 |              8.7 |    4 |            7.075 |             1.625
+ Lumet, Sidney          | 20.00000000000000000000 |     5 |        1 |              8.9 |    4 |              7.8 |               1.1
+ Miyazaki, Hayao        | 12.50000000000000000000 |     8 |        1 |              8.6 |    7 | 8.08571428571429 | 0.514285714285714
+ Nolan, Christopher (I) | 66.66666666666666666700 |     9 |        6 |             8.65 |    3 |              7.7 |              0.95
+ Polanski, Roman (I)    | 16.66666666666666666700 |     6 |        1 |              8.5 |    5 |             7.46 |              1.04
+ Scorsese, Martin (I)   | 13.33333333333333333300 |    15 |        2 |              8.6 |   13 | 7.68461538461538 | 0.915384615384616
+ Scott, Ridley          | 11.76470588235294117600 |    17 |        2 |              8.5 |   15 | 7.02666666666667 |  1.47333333333333
+ Singer, Bryan          | 12.50000000000000000000 |     8 |        1 |              8.6 |    7 |              7.1 |               1.5
+ Spielberg, Steven      | 12.00000000000000000000 |    25 |        3 | 8.66666666666667 |   22 | 7.43636363636363 |  1.23030303030303
+ Tarantino, Quentin     | 16.66666666666666666700 |    12 |        2 |              8.7 |   10 |             7.77 | 0.930000000000001
+ Wachowski, Lana        | 16.66666666666666666700 |     6 |        1 |              8.7 |    5 |             6.58 |              2.12
+ Wachowski, Lilly       | 16.66666666666666666700 |     6 |        1 |              8.7 |    5 |             6.58 |              2.12
+ Wilder, Billy          | 20.00000000000000000000 |     5 |        1 |              8.5 |    4 |             8.35 | 0.149999999999999
+ Zemeckis, Robert       | 13.33333333333333333300 |    15 |        2 |             8.65 |   13 |              7.1 |              1.55
+(23 rows)
